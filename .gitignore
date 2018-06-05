@@ -3,3 +3,10 @@
 *.tif*
 *.png
 .ipynb_checkpoints
+__pycache__/*
+
+# model checkpoints
+*.h5
+
+# model weights
+flow_*
