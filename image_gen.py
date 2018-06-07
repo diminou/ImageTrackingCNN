@@ -2,7 +2,9 @@ import numpy as np
 import cv2
 from scipy import interpolate
 from scipy import ndimage
+import scipy
 from keras.utils import Sequence
+
 
 def CreateImage(rescaled_imgsize, scaling_factor):
     #Create background
@@ -51,11 +53,14 @@ def four_node_quad(posnodes, dispnodes, X, Y):
     return res_disp
 
 
-def deform_matrix(seed, shape, sigmas, smoothing_sigmas):
+def deform_matrix(seed, shape, sigmas, smoothing_sigmas, base_norm = 10.0):
     x_location = np.random.randint(shape[0])
     y_location = np.random.randint(shape[1])
     x_displacement = np.random.normal(0.0, sigmas[0])
     y_displacement = np.random.normal(0.0, sigmas[1])
+    mult = base_norm / np.sqrt(((x_displacement ** 2) + (y_displacement **2)) + 0.01)
+    x_displacement = x_displacement * mult
+    y_displacement = y_displacement * mult
     dummy_xs = np.zeros(shape)
     dummy_ys = np.zeros(shape)
     dummy_xs[x_location, y_location] = x_displacement
@@ -138,8 +143,5 @@ def distort_image(img, method='rand_disp', met_interp='linear', disps=None):
                                    xi=np.array([xv.flatten(), yv.flatten()]).transpose(),
                                    method=met_interp,
                                    fill_value=0)
-    img_def = img_def.reshape(256,256).astype('uint8')
+    img_def = img_def.reshape(256, 256).astype('uint8')
     return {'image':img_def, 'disp':mat_fullfield}
-
-
-
