@@ -6,24 +6,32 @@ from torch.autograd import Variable
 def train_one(model, dataloader, criterion, logger, optimiser, epoch, device, cuda=True):
     results = {}
     loss = 0.0
+    num = 0
     for batch_idx, (data, target) in enumerate(dataloader):
-        data, target = [Variable(d) for d in data], [Variable(t) for t in target]
-        if cuda:
-            data, target = [d.cuda(async=True) for d in data], [t.cuda(async=True) for t in target]
+        data, target = Variable(data).cuda(), Variable(target).cuda()
         optimiser.zero_grad()
-        outs = [model(d) for d in data]
-        losses = sum([criterion(d, t) for (d, t) in zip(outs, target)]) / len(outs)
+        outs = model(data)
+        losses = torch.mean(criterion(outs, target))
         losses.backward()
         optimiser.step()
         loss += losses
+        num += 1
+        if not batch_idx % 100:
+            print("running loss: {}".format(loss / num))
     return loss
 
+
+class L1criterion(nn.Module):
+    def __init__(self):
+        super(L1criterion, self).__init__()
+    def forward(self, outputs, targets):
+        return torch.abs(targets - outputs).mean()
 
 def train(model, dataloader, epoch_scheduler, logger, epochs, checkpoint, cuda=True):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     history = []
-    criterion = nn.MSELoss()
+    criterion = L1criterion()
     for epoch in range(epochs):
         optimiser = optim.SGD(model.parameters(), lr=epoch_scheduler(epoch), momentum=0.9)
         loss = train_one(model, dataloader, criterion, logger, optimiser, epoch, device, cuda=cuda)

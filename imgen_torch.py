@@ -97,7 +97,7 @@ class ImageSequence(Dataset):
                  displacement_sigmas, smoothing_sigmas,
                  imsize=64, scaling_factor=0.1,
                  basemaxes=(3.0, 5.0),
-                 maxlen=10000):
+                 maxlen=1000):
         self.batch_size = batch_size
         self.maxlen = maxlen
         self.displacement_sigmas = displacement_sigmas
@@ -116,8 +116,8 @@ class ImageSequence(Dataset):
                                      self.basemaxes,
                                      self.imsize,
                                      self.scaling_factor)
-        return (torch.tensor(inp.reshape((1, 2, self.imsize, self.imsize)), dtype=torch.float32),
-                torch.tensor(outp.reshape((1, 2, self.imsize, self.imsize)), dtype=torch.float32))
+        return (torch.tensor(inp.reshape((2, self.imsize, self.imsize)) / 255., dtype=torch.float32),
+                torch.tensor(outp.reshape((2, self.imsize, self.imsize)) / 255., dtype=torch.float32))
 
 
 def distort_image(img, method='rand_disp', met_interp='linear', disps=None):
