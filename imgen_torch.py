@@ -4,6 +4,7 @@ from scipy import interpolate
 from scipy import ndimage
 import scipy
 from torch.utils.data import Dataset, DataLoader
+import torch
 
 def CreateImage(rescaled_imgsize, scaling_factor):
     #Create background
@@ -115,7 +116,8 @@ class ImageSequence(Dataset):
                                      self.basemaxes,
                                      self.imsize,
                                      self.scaling_factor)
-        return (inp, outp)
+        return (torch.tensor(inp.reshape((1, 2, self.imsize, self.imsize)), dtype=torch.float32),
+                torch.tensor(outp.reshape((1, 2, self.imsize, self.imsize)), dtype=torch.float32))
 
 
 def distort_image(img, method='rand_disp', met_interp='linear', disps=None):

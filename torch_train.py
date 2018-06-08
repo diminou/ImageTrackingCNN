@@ -6,15 +6,16 @@ from torch.autograd import Variable
 def train_one(model, dataloader, criterion, logger, optimiser, epoch, device, cuda=True):
     results = {}
     loss = 0.0
-    for batch_idx, (data, target) in enumerate(progress):
-        data, target = [Variable(d, volatile = is_validate) for d in data], [Variable(t, volatile = is_validate) for t in target]
+    for batch_idx, (data, target) in enumerate(dataloader):
+        data, target = [Variable(d) for d in data], [Variable(t) for t in target]
         if cuda:
             data, target = [d.cuda(async=True) for d in data], [t.cuda(async=True) for t in target]
         optimiser.zero_grad()
-        losses = criterion(data, target)
+        outs = [model(d) for d in data]
+        losses = sum([criterion(d, t) for (d, t) in zip(outs, target)]) / len(outs)
         losses.backward()
         optimiser.step()
-        loss += torch.mean(losses)
+        loss += losses
     return loss
 
 

@@ -1,19 +1,14 @@
 import torch
 import torch.nn as nn
-from keras.models import Model, Sequential
-from keras.layers import Input, Conv2D, MaxPooling2D, Conv2DTranspose, Activation, Dropout, BatchNormalization
 
-from keras.models import Model, Sequential
-from keras.layers import Input, Conv2D, MaxPooling2D, Conv2DTranspose
-from keras.layers import Activation, Dropout, Flatten, Dense, BatchNormalization, Reshape, LeakyReLU
 
-def conv(chin, chout, kernel_size=5, stride=1):
-    return nn.Sequential(nn.Conv2d(chin, chout, kernel_size=kernel_size, stride=stride),
-                         nn.BatchNorm(2d(chout)),
+def conv(chin, chout, kernel_size=5):
+    return nn.Sequential(nn.Conv2d(chin, chout, kernel_size=kernel_size, stride=(1, 1)),
+                         nn.BatchNorm2d(chout),
                          nn.LeakyReLU(0.1, inplace=True))
 
-def deconv(chin, chout, kernel_size=5, stride=1):
-    return nn.Sequential(nn.ConvTranspose2d(chin, chout, kernel_size=kernel_size, stride=stride),
+def deconv(chin, chout, kernel_size=5):
+    return nn.Sequential(nn.ConvTranspose2d(chin, chout, kernel_size=kernel_size, stride=(1, 1)),
                          nn.LeakyReLU(0.1, inplace=True))
 
 class DeepModel2(nn.Module):
@@ -29,7 +24,7 @@ class DeepModel2(nn.Module):
             self.deconv4 = deconv(512, 256)
             self.deconv3 = deconv(256, 128)
             self.deconv2 = deconv(128, 64)
-            self.deconv1 = deconv(64, 2)
+            self.deconv1 = deconv(64, 2, kernel_size=7)
 
             for m in self.modules():
                 if (isinstance(m, nn.Conv2d) | isinstance(m, nn.ConvTranspose2d)):

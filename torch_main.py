@@ -20,11 +20,12 @@ if __name__ == '__main__':
     parser.add_argument('--history', type=str, default='history.json')
 
     args = parser.parse_args()
-    model = DeepModel2()
+    model = DeepModel2(64, 8)
+    print(model)
     data_iter = ImageSequence(8, (20.0, 20.0), (7, 7))
-    dataloader = DataLoader(data_iter, batch_size=8, workers=args.workers, shuffle=False)
+    dataloader = DataLoader(data_iter, batch_size=8, num_workers=args.workers, shuffle=False)
     def scheduler(epoch):
         return (args.minrate + args.maxrate * (args.lrdecay**(epoch % args.lrreset)))
-    history = train(model, scheduler, None, args.total_epochs, args.checkpoint)
+    history = train(model, dataloader, scheduler, None, args.total_epochs, args.checkpoint)
     with open(args.history) as h:
         h.write(json.dumps(history))
