@@ -2,6 +2,7 @@ import json
 import argparse
 import os
 from torch.utils.data import DataLoader
+import torch
 
 from imgen_torch import ImageSequence
 from torch_train import train
@@ -21,6 +22,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     model = DeepModel2(64, 32)
+    try:
+        model = torch.load(args.checkpoint)
+    except Exception:
+        pass
+
     print(model)
     data_iter = ImageSequence(32, (20.0, 20.0), (7, 7))
     dataloader = DataLoader(data_iter, batch_size=32, num_workers=args.workers, shuffle=False)
