@@ -2,6 +2,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from torch.autograd import Variable
+import json
 
 def train_one(model, dataloader, criterion, logger, optimiser, epoch, device, cuda=True):
     results = {}
@@ -27,7 +28,7 @@ class L1criterion(nn.Module):
     def forward(self, outputs, targets):
         return torch.abs(targets - outputs).mean()
 
-def train(model, dataloader, epoch_scheduler, logger, epochs, checkpoint, cuda=True):
+def train(model, dataloader, epoch_scheduler, logger, epochs, checkpoint, histfile, cuda=True):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     history = []
@@ -35,7 +36,9 @@ def train(model, dataloader, epoch_scheduler, logger, epochs, checkpoint, cuda=T
     for epoch in range(epochs):
         optimiser = optim.SGD(model.parameters(), lr=epoch_scheduler(epoch), momentum=0.9)
         loss = train_one(model, dataloader, criterion, logger, optimiser, epoch, device, cuda=cuda)
-        history.append({'epoch': epoch, 'loss': loss, 'lr': epoch_scheduler(epoch)})
+        history.append({'epoch': epoch, 'loss': str(loss.data.cpu().numpy()), 'lr': epoch_scheduler(epoch)})
         print("hist: {}".format(history[-1]))
         torch.save(model, checkpoint)
+        with open(histfile, 'w') as h:
+            h.write(json.dumps(history))
     return history
