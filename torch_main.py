@@ -32,6 +32,6 @@ if __name__ == '__main__':
     dataloader = DataLoader(data_iter, batch_size=32, num_workers=args.workers, shuffle=False)
     def scheduler(epoch):
         return (args.minrate + args.maxrate * (args.lrdecay**(epoch % args.lrreset)))
-    history = train(model, dataloader, scheduler, None, args.total_epochs, args.checkpoint)
+    history = train(model, dataloader, scheduler, None, args.total_epochs, args.checkpoint, args.history)
     with open(args.history) as h:
         h.write(json.dumps(history))
