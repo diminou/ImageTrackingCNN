@@ -3,8 +3,7 @@ import cv2
 from scipy import interpolate
 from scipy import ndimage
 import scipy
-from keras.utils import Sequence
-
+from torch.utils.data import Dataset, DataLoader
 
 def CreateImage(rescaled_imgsize, scaling_factor):
     #Create background
@@ -53,7 +52,7 @@ def four_node_quad(posnodes, dispnodes, X, Y):
     return res_disp
 
 
-def deform_matrix(seed, shape, sigmas, smoothing_sigmas, base_max=10.0):
+def deform_matrix(seed, shape, sigmas, smoothing_sigmas, base_maxes):
     x_location = np.random.randint(shape[0])
     y_location = np.random.randint(shape[1])
     x_displacement = np.random.uniform(-sigmas[0], sigmas[0])
@@ -64,6 +63,7 @@ def deform_matrix(seed, shape, sigmas, smoothing_sigmas, base_max=10.0):
     dummy_ys[x_location, y_location] = y_displacement
     smooth_xs = scipy.ndimage.gaussian_filter(dummy_xs, smoothing_sigmas[0])
     smooth_ys = scipy.ndimage.gaussian_filter(dummy_ys, smoothing_sigmas[1])
+    base_max = np.random.uniform(base_maxes[0], base_maxes[1])
     smooth_xs = smooth_xs * (base_max / np.abs(smooth_xs).max())
     smooth_ys = smooth_ys * (base_max / np.abs(smooth_ys).max())
     return (smooth_xs, smooth_ys)
@@ -76,49 +76,46 @@ def shift_elements(original, deformations):
     return ndimage.geometric_transform(original, shift_func)
 
 
-def generate_pair(seed, displacement_sigmas, smoothing_sigmas, imsize=64, scaling_factor=0.1):
+def generate_pair(seed, displacement_sigmas, smoothing_sigmas, basemaxes, imsize=64, scaling_factor=0.1):
     orig = CreateImage(imsize, scaling_factor)
-    deformations = deform_matrix(seed, orig.shape, displacement_sigmas, smoothing_sigmas)
+    deformations = deform_matrix(seed, orig.shape, displacement_sigmas, smoothing_sigmas, basemaxes)
     shifted = shift_elements(orig, deformations)
     return ((orig, shifted), deformations)
 
 
-def generate_stacked(seed, displacement_sigmas, smoothing_sigmas, imsize=64, scaling_factor=0.1):
-    ors, deform = generate_pair(seed, displacement_sigmas, smoothing_sigmas, imsize=imsize, scaling_factor=scaling_factor)
+def generate_stacked(seed, displacement_sigmas, smoothing_sigmas, basemaxes, imsize=64, scaling_factor=0.1):
+    ors, deform = generate_pair(seed, displacement_sigmas, smoothing_sigmas, basemaxes, imsize=imsize, scaling_factor=scaling_factor)
     o, rs = ors
     dx, dy = deform
-    return (np.stack([o, rs], axis=-1), np.stack([dx, dy], axis=-1))
+    return (np.stack([o, rs], axis=0), np.stack([dx, dy], axis=0))
 
 
-class ImageSequence(Sequence):
+class ImageSequence(Dataset):
 
     def __init__(self, batch_size,
                  displacement_sigmas, smoothing_sigmas,
                  imsize=64, scaling_factor=0.1,
+                 basemaxes=(3.0, 5.0),
                  maxlen=10000):
         self.batch_size = batch_size
         self.maxlen = maxlen
         self.displacement_sigmas = displacement_sigmas
         self.smoothing_sigmas = smoothing_sigmas
         self.imsize = imsize
+        self.basemaxes = basemaxes
         self.scaling_factor = scaling_factor
 
     def __len__(self):
         return self.maxlen
 
     def __getitem__(self, idx):
-        inputs = []
-        outputs = []
-        for i in range(self.batch_size):
-            inp, outp = generate_stacked(np.random.randint(1000),
-                                         self.displacement_sigmas,
-                                         self.smoothing_sigmas,
-                                         self.imsize,
-                                         self.scaling_factor)
-            inputs.append(inp)
-            outputs.append(outp)
-                                                                                                                                                        
-        return (np.array(inputs), np.array(outputs))
+        inp, outp = generate_stacked(np.random.randint(1000),
+                                     self.displacement_sigmas,
+                                     self.smoothing_sigmas,
+                                     self.basemaxes,
+                                     self.imsize,
+                                     self.scaling_factor)
+        return (inp, outp)
 
 
 def distort_image(img, method='rand_disp', met_interp='linear', disps=None):
